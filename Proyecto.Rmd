@@ -1,0 +1,122 @@
+---
+title: "Proyecto_Trading"
+author: "Bula-Malagón-Serrano"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Introducción 
+
+
+
+
+## Parametrización de la estrategia
+
+
+```{r}
+# Medias moviles doble crossover method "Exponenciales" 
+activo <- "MSFT"
+from <- "2020-01-01"
+periodicidad <- "daily"   #"weekly", "monthly"
+EMA1 <- 20
+EMA2 <- 50
+
+# MACD & Signal Line
+
+rapida <- 12 
+lenta <- 26 
+signo <- 9
+```
+
+
+
+# Cotización del Microsoft
+
+```{r,warning=FALSE}
+library(quantmod)
+library(ggplot2)
+#install.packages("TTR")
+library(TTR)
+library(dygraphs)
+library(dplyr)
+library(tidyverse)
+
+```
+
+```{r}
+activo <- getSymbols(Symbols = activo,src = "yahoo", from =from, to=Sys.Date(),
+                     periodicity = periodicidad, auto.assign = FALSE)
+PRECIO <- activo[,4]
+```
+
+
+## Medias moviles exponenciales doble crossover method
+
+```{r}
+EMA <- function (price,n){
+  ema <- c()
+  ema[1:(n-1)] <- NA
+  ema[n]<- mean(price[1:n])
+  beta <- 2/(n+1)
+  for (i in (n+1):length(price)){
+    ema[i]<-beta * price[i] + 
+      (1-beta) * ema[i-1]
+  }
+  ema <- reclass(ema,price)
+  return(ema)
+}
+
+MA1 <- EMA(PRECIO,EMA1)
+MA2 <- EMA(PRECIO,EMA2)
+
+
+x <- cbind(activo[,c(1:4)],MA1,MA2)
+cola <- tail(x, n=90)
+grap<-dygraph(cola)
+  dyCandlestick(grap)%>%
+  dyRangeSelector()
+  
+```
+
+## MACD oscilador 
+
+```{r}
+MACD <- function (precio,Short,Large,sig){
+  MACD <- na.omit(EMA(precio,Short) - EMA(precio,Large))
+  signal <- EMA(MACD,sig)
+  tabla <- cbind(MACD,signal)
+  colnames(tabla) <- c("MACD","signal")
+  return(tabla)
+}
+
+
+MACD_data <- MACD(precio = PRECIO,Short =rapida ,Large = lenta,sig = signo)
+
+dygraph(MACD_data)%>%
+  dyRangeSelector()
+
+
+```
+
+## Señales con el MEDIA MOVIL Y MACD
+
+```{r}
+siganls_buy <- function(ma1,ma2){
+  
+  signal_buy <- c()
+  inicio <- (nrow(ma2)-nrow(filter(as.data.frame(ma2),V1!="NA")))+1
+  for (i in inicio:nrow(MA2)) {
+    if ((ma1[i,1]>ma2[i,1])&&(ma1[i-1,1]<ma2[i-1,1])) {
+      signal_buy[i] <- 1
+    }else{
+      signal_buy[i] <- 0
+    }
+  }
+x <- cbind(ma1,ma2,signal_buy)
+filtro <- filter(as.data.frame(x),signal_buy==1)
+return(filtro)
+}
+
+siganls_buy(ma1 = MA1,ma2 = MA2)
+```
+
