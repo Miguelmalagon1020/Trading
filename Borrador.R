@@ -2,8 +2,12 @@
 # LIBRERIAS ---------------------------------------------------------------
 library(quantmod)
 library(ggplot2)
-install.packages("TTR")
+#install.packages("TTR")
 library(TTR)
+library(dygraphs)
+library(dplyr)
+library(tidyverse)
+
 # IMPORTACION DE DATOS  ---------------------------------------------------
 
 
@@ -15,17 +19,18 @@ chartSeries(activo,
             type="candlesticks",
             up.col = 'green',
             down.col = 'red',
-            subset = "last 4 months",
+            subset = "last 10 months",
             theme=chartTheme('white'))
 
-addEMA(n=20,on=1,col = "blue")
-addEMA(n=50,on=1,col = "red")
-addEMA(n=18,on=1,col = "#FF0099")
+addEMA(n=5,on=1,col = "blue")
+addEMA(n=20,on=1,col = "red")
+addEMA(n=200,on=1,col = "#FF0099")
 
 addBBands(n=20,sd=2)
 addMACD(fast=12,slow=26,signal=9,type="EMA")
 
-
+dygraph(tail(activo,30)) %>%
+  dyCandlestick()
 
 # MEDIAS MOVILES EXPONENCIALES --------------------------------------------
 
@@ -49,17 +54,32 @@ EMA_20 <- EMA(activo$MSFT.Close,20)
 EMA_50 <- EMA(activo$MSFT.Close,50)
 EMA_200<- EMA(activo$MSFT.Close,200)
 
-signal <- c()
+signal_buy <- c()
 for (i in 50:nrow(EMA_50)) {
-  if (EMA_20[i,1]>EMA_50[i,1]) {
-    signal[i] <- 1
+  if ((EMA_20[i,1]>EMA_50[i,1])&&(EMA_20[i-1,1]<EMA_50[i-1,1])) {
+    signal_buy[i] <- 1
   }else{
-    signal[i] <- 0
+    signal_buy[i] <- 0
   }
 }
 
-x <- cbind(EMA_20,EMA_50)
-x
+signal_sell <- c()
+for (i in 50:nrow(EMA_50)) {
+  if ((EMA_20[i,1]<EMA_50[i,1])&&(EMA_20[i-1,1]>EMA_50[i-1,1])) {
+    signal_buy[i] <- 1
+  }else{
+    signal_buy[i] <- 0
+  }
+}
+
+x <- cbind(EMA_20,EMA_50,signal_buy)
+
+filtro <- filter(as.data.frame(x),signal_buy==1)
+filtro
+
+
+dygraph(x)%>%
+  dyRangeSelector()
 
 
 
@@ -73,4 +93,12 @@ MACD <- function (precio,Short,Large,sig){
   return(tabla)
 }
 
-MACD(precio = activo$MSFT.Close,Short = 12,Large = 26,sig = 9)
+MACD_data <- MACD(precio = activo$MSFT.Close,Short = 12,Large = 26,sig = 9)
+
+dygraph(MACD_data)%>%dyRangeSelector()
+
+cola <- tail(activo, n=90)
+graph<-dygraph(OHLC(cola))
+dyCandlestick(graph)
+  
+
