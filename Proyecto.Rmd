@@ -131,17 +131,18 @@ siganls_buy <- function(ma1,ma2){
     }
   }
 x <- cbind(ma1,ma2,signal_buy)
-filtro <- filter(as.data.frame(x),signal_buy==1)
-return(filtro)
+return(x)
 }
 
-siganls_buy(ma1 = MA1,ma2 = MA2)
+
+compra <- siganls_buy(ma1 = MA1,ma2 = MA2)
 ```
+   
 ### Señal de venta 
 
 ```{r}
 siganls_sell<- function(ma1,ma2){
-  
+
   signal_sell <- c()
   inicio <- (nrow(ma2)-nrow(filter(as.data.frame(ma2),V1!="NA")))
   ma2[inicio,1] <- 0
@@ -153,11 +154,10 @@ siganls_sell<- function(ma1,ma2){
     }
   }
 x <- cbind(ma1,ma2,signal_sell)
-filtro <- filter(as.data.frame(x),signal_sell==1)
-return(filtro)
+return(x)
 }
 
-siganls_sell(ma1 = MA1,ma2 = MA2)
+venta <- siganls_sell(ma1 = MA1,ma2 = MA2)
 ```
 
 ## Confiormacion con MACD
@@ -167,7 +167,7 @@ siganls_sell(ma1 = MA1,ma2 = MA2)
 siganls_buy_MACD <- function(macd){
   
   signal_buy <- c()
-  inicio <- (nrow(macd)-nrow(filter(as.data.frame(macd[,2]),"signal"!="NA")))
+  inicio <- (nrow(macd)-nrow(filter(as.data.frame(macd[,2]),signal!="NA")))
   macd[inicio,2] <- 0
   for (i in (inicio+1):nrow(macd)) {
     if ((macd[i,1]>macd[i,2])&&(macd[i-1,1]<macd[i-1,2])) {
@@ -177,22 +177,79 @@ siganls_buy_MACD <- function(macd){
     }
   }
 x <- cbind(macd,signal_buy)
-filtro <- filter(as.data.frame(x),signal_buy==1)
-return(filtro)
+
+return(x)
 }
 
-siganls_buy_MACD(macd = MACD_data)
+compra_MACD <- siganls_buy_MACD(macd = abs(MACD_data))
 
 
+```
+### señal compra
 
-Filtrico <- filter(as.data.frame(MACD_data$signal),"signal"!="NA")
+```{r}
+siganls_sell_MACD <- function(macd){
+  
+  signal_sell <- c()
+  inicio <- (nrow(macd)-nrow(filter(as.data.frame(macd[,2]),signal!="NA")))
+  macd[inicio,2] <- 0
+  for (i in (inicio+1):nrow(macd)) {
+    if ((macd[i,1]<macd[i,2])&&(macd[i-1,1]>macd[i-1,2])) {
+      signal_sell[i] <- 1
+    }else{
+      signal_sell[i] <- 0
+    }
+  }
+x <- cbind(macd,signal_sell)
+return(x)
+}
+
+venta_MACD <- siganls_sell_MACD(macd = abs(MACD_data))
 
 
+```
 
+
+# UNIFICACIÓN DE TABLAS 
+
+```{r}
+
+TABLA <- merge(activo,venta,join = "inner")
+TABLA <- merge(TABLA,compra,join = "inner")
+TABLA <- merge(TABLA,venta_MACD,join = "inner")
+TABLA <- merge(TABLA,compra_MACD,join = "inner")
+
+final <- select(as.data.frame(TABLA),c(1,4,9,12,15,18))
+colnames(final) <- c("Precio_apertura","Precio_cierre","sig_SELL_MA","sig_BUY_MA",
+                     "MACD_Sell","MACD_Buy")
+final$sig_SELL_MA <- gsub(1,"SELL",final$sig_SELL_MA)
+final$sig_SELL_MA <- gsub(0,"nada",final$sig_SELL_MA)
+
+final$sig_BUY_MA <- gsub(1,"BUY",final$sig_BUY_MA)
+final$sig_BUY_MA <- gsub(0,"nada",final$sig_BUY_MA)
+
+final$MACD_Sell <- gsub(1,"SELL",final$MACD_Sell)
+final$MACD_Sell <- gsub(0,"nada",final$MACD_Sell)
+
+final$MACD_Buy <- gsub(1,"BUY",final$MACD_Buy)
+final$MACD_Buy <- gsub(0,"nada",final$MACD_Buy)
 
 
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # RSI oscilador 
 
