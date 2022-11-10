@@ -163,27 +163,35 @@ siganls_sell(ma1 = MA1,ma2 = MA2)
 ## Confiormacion con MACD
 ### señal compra
 
-### Señal de compra
-
 ```{r}
-siganls_buy <- function(ma1,ma2){
+siganls_buy_MACD <- function(macd){
   
   signal_buy <- c()
-  inicio <- (nrow(ma2)-nrow(filter(as.data.frame(ma2),V1!="NA")))
-  ma2[inicio,1] <- 0
-  for (i in (inicio+1):nrow(MA2)) {
-    if ((ma1[i,1]>ma2[i,1])&&(ma1[i-1,1]<ma2[i-1,1])) {
+  inicio <- (nrow(macd)-nrow(filter(as.data.frame(macd[,2]),"signal"!="NA")))
+  macd[inicio,2] <- 0
+  for (i in (inicio+1):nrow(macd)) {
+    if ((macd[i,1]>macd[i,2])&&(macd[i-1,1]<macd[i-1,2])) {
       signal_buy[i] <- 1
     }else{
       signal_buy[i] <- 0
     }
   }
-x <- cbind(ma1,ma2,signal_buy)
+x <- cbind(macd,signal_buy)
 filtro <- filter(as.data.frame(x),signal_buy==1)
 return(filtro)
 }
 
-siganls_buy(ma1 = MA1,ma2 = MA2)
+siganls_buy_MACD(macd = MACD_data)
+
+
+
+Filtrico <- filter(as.data.frame(MACD_data$signal),"signal"!="NA")
+
+
+
+
+
+
 ```
 
 # RSI oscilador 
