@@ -224,29 +224,42 @@ myRSI <- function (PRECIO,n){
 rsi <- myRSI(Cl(PRECIO), MM_RSI)
 RSI <- cbind(rsi,Sobrecompra,Sobreventa)
 #Gráfico
-dygraph(RSI, main= "RSI oscilator")%>%
+Graf_RSI <- dygraph(RSI, main= "RSI oscilator")%>%
   dyRangeSelector()
+Graf_RSI
 ```
-#Señales con RSI 
+#Señales con RSI
 ```{r}
-senal_rsi <- function(oscilador,S_venta,inicio){
-  senal_compra <- c()
+senal_rsi <- function(oscilador,S_venta,S_compra,inicio){
+  senal <- c()
   INICIO <- inicio+1
   TILL <- nrow(oscilador)
   for (i in INICIO:TILL) {
       if((oscilador[i,1]<S_venta)&&(oscilador[i-1,1]>S_venta)){
-      senal_compra[i] <- 1
-    }else{
-      senal_compra[i] <- 0
+      senal[i] <- 1
+    }else 
+      if((oscilador[i,1]>S_compra)&&(oscilador[i-1,1]<S_compra)){
+      senal[i] <- -1}
+    else{
+      senal[i] <- 0
     }
   }
-  z <- cbind(oscilador,senal_compra)
-filter_r <- filter(as.data.frame(z),senal_compra==1)
+  z <- cbind(oscilador,senal)
+filter_r <- as.data.frame(z)
 return(filter_r)
   }
 
-RSI_signals <- senal_rsi(oscilador= rsi,S_venta = Sobreventa,inicio = MM_RSI)
+RSI_signals <- senal_rsi(oscilador= rsi,S_venta = Sobreventa,S_compra=Sobrecompra,inicio = MM_RSI)
 head(RSI_signals)
 ```
-
-
+#ADX 
+```{r}
+data(activo)
+activo1 <- activo[,1:4]
+dmi.adx <- ADX(activo[,1:4])
+dmi.adx <- dmi.adx[,-3]
+AADX <- cbind(dmi.adx,25)
+#GRAFICO
+dygraph(AADX, main= "ADX, +DMI & -DMI")%>%
+  dyRangeSelector()
+```
