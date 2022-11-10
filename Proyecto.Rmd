@@ -26,6 +26,10 @@ EMA2 <- 50
 rapida <- 12 
 lenta <- 26 
 signo <- 9
+
+#Oscilador RSI 
+MM_RSI <- 14
+
 ```
 
 
@@ -98,7 +102,7 @@ dygraph(MACD_data)%>%
 
 ```
 
-## Señales con el MEDIA MOVIL Y MACD
+## Señales con la MEDIA MOVIL Y MACD
 
 ```{r}
 siganls_buy <- function(ma1,ma2){
@@ -119,4 +123,35 @@ return(filtro)
 
 siganls_buy(ma1 = MA1,ma2 = MA2)
 ```
+# RSI oscilador 
+```{r}
+myRSI <- function (PRECIO,n){
+  N <- length(PRECIO)
+  U <- rep(0,N)
+  D <- rep(0,N)
+  rsi <- rep(NA,N)
+  Lprice <- Lag(PRECIO,1)
+  for (i in 2:N){
+    if (PRECIO[i]>=Lprice[i]){
+      U[i] <- 1
+    } else {
+      D[i] <- 1
+    }
+    if (i>n){
+      AvgUp <- mean(U[(i-n+1):i])
+      AvgDn <- mean(D[(i-n+1):i])
+      rsi[i] <- AvgUp/(AvgUp+AvgDn)*100 
+      }
+    }
+  rsi <- reclass(rsi, PRECIO)
+  return(rsi)
+}
+
+rsi <- myRSI(Cl(PRECIO), MM_RSI)
+RSI <- cbind(rsi,70,30)
+#Gráfico
+dygraph(RSI, main= "RSI oscilator")%>%
+  dyRangeSelector()
+```
+
 
