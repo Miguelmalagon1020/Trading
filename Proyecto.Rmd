@@ -48,7 +48,7 @@ library(TTR)
 library(dygraphs)
 library(dplyr)
 library(tidyverse)
-
+update.packages()
 ```
 
 ```{r}
@@ -254,6 +254,8 @@ final$MACD_Buy <- gsub(0,"nada",final$MACD_Buy)
 # RSI oscilador 
 
 ```{r}
+Sobrecompra <- 70
+Sobreventa <- 30
 myRSI <- function (PRECIO,n){
   N <- length(PRECIO)
   U <- rep(0,N)
@@ -277,10 +279,31 @@ myRSI <- function (PRECIO,n){
 }
 
 rsi <- myRSI(Cl(PRECIO), MM_RSI)
-RSI <- cbind(rsi,70,30)
+RSI <- cbind(rsi,Sobrecompra,Sobreventa)
 #Gráfico
 dygraph(RSI, main= "RSI oscilator")%>%
   dyRangeSelector()
+```
+#Señales con RSI 
+```{r}
+senal_rsi <- function(oscilador,S_venta,inicio){
+  senal_compra <- c()
+  INICIO <- inicio+1
+  TILL <- nrow(oscilador)
+  for (i in INICIO:TILL) {
+      if((oscilador[i,1]<S_venta)&&(oscilador[i-1,1]>S_venta)){
+      senal_compra[i] <- 1
+    }else{
+      senal_compra[i] <- 0
+    }
+  }
+  z <- cbind(oscilador,senal_compra)
+filter_r <- filter(as.data.frame(z),senal_compra==1)
+return(filter_r)
+  }
+
+RSI_signals <- senal_rsi(oscilador= rsi,S_venta = Sobreventa,inicio = MM_RSI)
+head(RSI_signals)
 ```
 
 
