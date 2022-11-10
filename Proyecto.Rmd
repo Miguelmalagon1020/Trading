@@ -15,7 +15,7 @@ output: html_document
 
 ```{r}
 # Medias moviles doble crossover method "Exponenciales" 
-activo <- "MSFT"
+ticket <- "MSFT"
 from <- "2020-01-01"
 periodicidad <- "daily"   #"weekly", "monthly"
 EMA1 <- 20
@@ -29,6 +29,10 @@ signo <- 9
 
 #Oscilador RSI 
 MM_RSI <- 14
+
+# Graficos 
+
+ventana=120 #relacionado con la periodicidad 
 
 ```
 
@@ -48,7 +52,7 @@ update.packages()
 ```
 
 ```{r}
-activo <- getSymbols(Symbols = activo,src = "yahoo", from =from, to=Sys.Date(),
+activo <- getSymbols(Symbols = ticket,src = "yahoo", from =from, to=Sys.Date(),
                      periodicity = periodicidad, auto.assign = FALSE)
 PRECIO <- activo[,4]
 ```
@@ -75,12 +79,19 @@ MA2 <- EMA(PRECIO,EMA2)
 
 
 x <- cbind(activo[,c(1:4)],MA1,MA2)
-cola <- tail(x, n=90)
+cola <- tail(x, n=ventana)
 grap<-dygraph(cola)
   dyCandlestick(grap)%>%
   dyRangeSelector()
-  
+
 ```
+```{r}
+xy <- cbind(MA2,MA1)
+dygraph(xy)%>%
+  dyRangeSelector()
+
+```
+
 
 ## MACD oscilador 
 
@@ -104,12 +115,15 @@ dygraph(MACD_data)%>%
 
 ## Señales con la MEDIA MOVIL Y MACD
 
+### Señal de compra
+
 ```{r}
 siganls_buy <- function(ma1,ma2){
   
   signal_buy <- c()
-  inicio <- (nrow(ma2)-nrow(filter(as.data.frame(ma2),V1!="NA")))+1
-  for (i in inicio:nrow(MA2)) {
+  inicio <- (nrow(ma2)-nrow(filter(as.data.frame(ma2),V1!="NA")))
+  ma2[inicio,1] <- 0
+  for (i in (inicio+1):nrow(MA2)) {
     if ((ma1[i,1]>ma2[i,1])&&(ma1[i-1,1]<ma2[i-1,1])) {
       signal_buy[i] <- 1
     }else{
@@ -123,7 +137,65 @@ return(filtro)
 
 siganls_buy(ma1 = MA1,ma2 = MA2)
 ```
+### Señal de venta 
+
+```{r}
+siganls_sell<- function(ma1,ma2){
+  
+  signal_sell <- c()
+  inicio <- (nrow(ma2)-nrow(filter(as.data.frame(ma2),V1!="NA")))
+  ma2[inicio,1] <- 0
+  for (i in (inicio+1):nrow(MA2)) {
+    if ((ma1[i,1]<ma2[i,1])&&(ma1[i-1,1]>ma2[i-1,1])) {
+      signal_sell[i] <- 1
+    }else{
+      signal_sell[i] <- 0
+    }
+  }
+x <- cbind(ma1,ma2,signal_sell)
+filtro <- filter(as.data.frame(x),signal_sell==1)
+return(filtro)
+}
+
+siganls_sell(ma1 = MA1,ma2 = MA2)
+```
+
+## Confiormacion con MACD
+### señal compra
+
+```{r}
+siganls_buy_MACD <- function(macd){
+  
+  signal_buy <- c()
+  inicio <- (nrow(macd)-nrow(filter(as.data.frame(macd[,2]),"signal"!="NA")))
+  macd[inicio,2] <- 0
+  for (i in (inicio+1):nrow(macd)) {
+    if ((macd[i,1]>macd[i,2])&&(macd[i-1,1]<macd[i-1,2])) {
+      signal_buy[i] <- 1
+    }else{
+      signal_buy[i] <- 0
+    }
+  }
+x <- cbind(macd,signal_buy)
+filtro <- filter(as.data.frame(x),signal_buy==1)
+return(filtro)
+}
+
+siganls_buy_MACD(macd = MACD_data)
+
+
+
+Filtrico <- filter(as.data.frame(MACD_data$signal),"signal"!="NA")
+
+
+
+
+
+
+```
+
 # RSI oscilador 
+
 ```{r}
 Sobrecompra <- 70
 Sobreventa <- 30
